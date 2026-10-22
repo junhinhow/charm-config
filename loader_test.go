@@ -83,6 +83,26 @@ func TestDeepMergeTresCamadas(t *testing.T) {
 	if got := typed.All()["ints"].([]int)[0]; got != 1 {
 		t.Errorf("slice tipado compartilhado: %d", got)
 	}
+
+	// Mapas com tipo concreto também participam do merge profundo.
+	typedMaps := New().
+		Defaults(map[string]any{"server": map[string]string{"host": "a", "port": "1"}}).
+		Flags(map[string]any{"server": map[string]any{"port": "2"}})
+	if got := typedMaps.String("server.host", ""); got != "a" {
+		t.Errorf("host de mapa tipado = %q, esperado a", got)
+	}
+	if got := typedMaps.String("server.port", ""); got != "2" {
+		t.Errorf("port de mapa tipado = %q, esperado 2", got)
+	}
+
+	// Slices de mapas tipados não devem causar panic na cópia.
+	typedList := New().Defaults(map[string]any{
+		"items": []map[string]string{{"a": "b"}},
+	})
+	items, ok := typedList.All()["items"].([]map[string]string)
+	if !ok || len(items) != 1 || items[0]["a"] != "b" {
+		t.Errorf("lista de mapas tipados = %#v", typedList.All()["items"])
+	}
 }
 
 // TestPrioridadeEmpate cobre a ordem estável em caso de prioridade igual.

@@ -73,9 +73,24 @@ func cloneValue(value any) any {
 				out.Index(i).Set(reflect.Zero(rv.Type().Elem()))
 				continue
 			}
-			out.Index(i).Set(reflect.ValueOf(item))
+			cloned := reflect.ValueOf(item)
+			if !cloned.Type().AssignableTo(rv.Type().Elem()) {
+				cloned = rv.Index(i)
+			}
+			out.Index(i).Set(cloned)
 		}
 		return out.Interface()
+	}
+	if rv.IsValid() && rv.Kind() == reflect.Map && rv.Type().Key().Kind() == reflect.String {
+		if rv.IsNil() {
+			return value
+		}
+		out := make(map[string]any, rv.Len())
+		iter := rv.MapRange()
+		for iter.Next() {
+			out[iter.Key().String()] = cloneValue(iter.Value().Interface())
+		}
+		return out
 	}
 	return value
 }
